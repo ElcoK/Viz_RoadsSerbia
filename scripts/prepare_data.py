@@ -1,10 +1,8 @@
 """
 prepare_data.py
 
-Reads parquet sources, filters columns, simplifies geometries,
+Reads parquet sources, filters columns,
 and exports GeoJSON files ready for tippecanoe tiling.
-
-Run locally or via GitHub Actions before tiling.
 """
 
 from pathlib import Path
@@ -28,6 +26,14 @@ NETWORK_PARQUET     = DATA_DIR / "PERS_directed_final.parquet"
 
 CRITICALITY_GEOJSON = TEMP_DIR / "criticality.geojson"
 NETWORK_GEOJSON     = TEMP_DIR / "network.geojson"
+
+# Fail early if source files are missing
+for p in [CRITICALITY_PARQUET, NETWORK_PARQUET]:
+    if not p.exists():
+        raise FileNotFoundError(f"Source file not found: {p}")
+
+print(f"Found: {CRITICALITY_PARQUET.name} ({CRITICALITY_PARQUET.stat().st_size / 1e6:.1f} MB)")
+print(f"Found: {NETWORK_PARQUET.name} ({NETWORK_PARQUET.stat().st_size / 1e6:.1f} MB)")
 
 # =============================================================================
 # Columns
@@ -61,6 +67,7 @@ def load_and_prepare(parquet_path, keep_cols):
     print(f"  Reading {parquet_path.name}...")
     gdf = gpd.read_parquet(parquet_path)
     print(f"  {len(gdf)} features loaded")
+    print(f"  Columns available: {list(gdf.columns)}")
 
     # Keep only existing columns (safety check)
     keep = [c for c in keep_cols if c in gdf.columns]
@@ -70,11 +77,14 @@ def load_and_prepare(parquet_path, keep_cols):
     gdf = gdf[keep].copy()
 
     # Reproject to WGS84
+    print(f"  Reprojecting to WGS84...")
     gdf = gdf.to_crs(epsg=4326)
 
-    # Drop null geometries
+    # Drop null/empty geometries
+    before = len(gdf)
     gdf = gdf[gdf.geometry.notna()]
     gdf = gdf[~gdf.geometry.is_empty]
+    print(f"  {len(gdf)} features after dropping null/empty geometries (dropped {before - len(gdf)})")
 
     return gdf
 
@@ -89,27 +99,33 @@ def export_geojson(gdf, path):
 # =============================================================================
 
 print("\n=== Criticality Network ===")
-gdf_criticality = load_and_prepare(CRITICALITY_PARQUET, criticality_cols)
+try:
+    gdf_criticality = load_and_prepare(CRITICALITY_PARQUET, criticality_cols)
 
-# Fill NaN class values
-for col in ['H_class', 'T_class', 'A_class', 'CC_class']:
-    if col in gdf_criticality.columns:
-        gdf_criticality[col] = gdf_criticality[col].fillna('No criticality')
+    for col in ['H_class', 'T_class', 'A_class', 'CC_class']:
+        if col in gdf_criticality.columns:
+            gdf_criticality[col] = gdf_criticality[col].fillna('No criticality')
 
-export_geojson(gdf_criticality, NETWORK_GEOJSON)
+    export_geojson(gdf_criticality, CRITICALITY_GEOJSON)
+except Exception as e:
+    print(f"ERROR in criticality network: {e}")
+    raise
 
 # =============================================================================
 # Base network
 # =============================================================================
 
 print("\n=== Base Network ===")
-gdf_network = load_and_prepare(NETWORK_PARQUET, network_cols)
+try:
+    gdf_network = load_and_prepare(NETWORK_PARQUET, network_cols)
 
-# Filter to road categories used in visualisation
-road_categories = ['IA', 'IM', 'IB', 'IIA', 'IIB']
-gdf_network = gdf_network[gdf_network['kategorija'].isin(road_categories)].copy()
-print(f"  {len(gdf_network)} features after category filter")
+    road_categories = ['IA', 'IM', 'IB', 'IIA', 'IIB']
+    gdf_network = gdf_network[gdf_network['kategorija'].isin(road_categories)].copy()
+    print(f"  {len(gdf_network)} features after category filter")
 
-export_geojson(gdf_network, NETWORK_GEOJSON)
+    export_geojson(gdf_network, NETWORK_GEOJSON)
+except Exception as e:
+    print(f"ERROR in base network: {e}")
+    raise
 
 print("\nDone. Ready for tiling.")
