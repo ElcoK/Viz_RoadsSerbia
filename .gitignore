@@ -1,0 +1,12 @@
+# Temporary GeoJSON files generated during build
+data/temp/
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db

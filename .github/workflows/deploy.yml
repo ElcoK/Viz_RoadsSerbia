@@ -4,17 +4,17 @@ on:
   push:
     branches: [main]
     paths:
-      - 'data/**'         # rebuild if data changes
-      - 'scripts/**'      # rebuild if script changes
+      - 'data/**'
+      - 'scripts/**'
+      - 'docs/index.html'
       - 'requirements.txt'
-
-  workflow_dispatch:      # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write     # needed to push to gh-pages branch
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -33,11 +33,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Build map
-        run: python scripts/build_map.py
+      - name: Install tippecanoe
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y tippecanoe
+
+      - name: Prepare GeoJSON
+        run: python scripts/prepare_data.py
+
+      - name: Build PMTiles
+        run: bash scripts/tile.sh
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Serbia Blue Spot Analysis</title>
+
+<!-- MapLibre GL -->
+<script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" rel="stylesheet" />
+
+<!-- PMTiles protocol -->
+<script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  #header {
+    background: #1a3a5c;
+    color: white;
+    padding: 0 20px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    z-index: 10;
+  }
+  #header h1 {
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.2px;
+  }
+  #info-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.5);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  #info-btn:hover { background: rgba(255,255,255,0.35); }
+
+  /* ── Map ── */
+  #map {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* ── Footer ── */
+  #footer {
+    background: #f5f5f5;
+    border-top: 1px solid #ddd;
+    padding: 5px 16px;
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  /* ── Layer control panel ── */
+  #layer-control {
+    position: absolute;
+    top: 16px;
+    right: 10px;
+    z-index: 5;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.25);
+    min-width: 210px;
+    font-size: 12px;
+  }
+  #layer-control .section-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 10px 0 6px 0;
+  }
+  #layer-control .section-title:first-child { margin-top: 0; }
+  #layer-control label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 5px;
+    cursor: pointer;
+  }
+  #layer-control input { cursor: pointer; }
+  #layer-control hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 8px 0;
+  }
+
+  /* ── Legend ── */
+  #map-legend {
+    position: absolute;
+    bottom: 16px;
+    right: 10px;
+    z-index: 5;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.25);
+    min-width: 180px;
+    font-size: 12px;
+  }
+  #map-legend h4 {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    color: #1a3a5c;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .legend-swatch {
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── Info modal ── */
+  #info-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  #info-overlay.active { display: flex; }
+  #info-modal {
+    background: white;
+    border-radius: 10px;
+    padding: 28px;
+    max-width: 560px;
+    width: 92%;
+    max-height: 82vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    position: relative;
+    font-size: 13px;
+  }
+  #info-modal h2 {
+    font-size: 15px;
+    color: #1a3a5c;
+    border-bottom: 2px solid #1a3a5c;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+  }
+  #info-modal h3 {
+    font-size: 13px;
+    color: #1a3a5c;
+    margin: 14px 0 5px 0;
+  }
+  #info-modal p, #info-modal li {
+    font-size: 12px;
+    color: #444;
+    line-height: 1.65;
+    margin-bottom: 4px;
+  }
+  #info-modal ul { padding-left: 18px; margin-bottom: 6px; }
+  #close-modal {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #999;
+    line-height: 1;
+  }
+  #close-modal:hover { color: #333; }
+
+  /* ── Popup ── */
+  .maplibregl-popup-content {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    padding: 10px 14px;
+    max-width: 280px;
+    border-radius: 6px;
+  }
+  .popup-title {
+    font-weight: bold;
+    font-size: 13px;
+    color: #1a3a5c;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
+  }
+  .popup-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 3px;
+  }
+  .popup-label { color: #777; }
+  .popup-value { font-weight: bold; color: #333; text-align: right; }
+  .popup-class {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- Header -->
+<div id="header">
+  <h1>Interactive Visualisation of Serbia's Blue Spot Analysis</h1>
+  <button id="info-btn" onclick="document.getElementById('info-overlay').classList.add('active')">i</button>
+</div>
+
+<!-- Map -->
+<div id="map">
+  <!-- Layer control -->
+  <div id="layer-control">
+    <div class="section-title">Background</div>
+    <label>
+      <input type="checkbox" id="toggle-network-grey" checked>
+      Road Network
+    </label>
+
+    <hr>
+    <div class="section-title">Criticality Layers</div>
+    <label><input type="radio" name="criticality" value="H_class" checked> Hazard Exposure</label>
+    <label><input type="radio" name="criticality" value="T_class"> Travel Disruption</label>
+    <label><input type="radio" name="criticality" value="A_class"> Local Accessibility</label>
+    <label><input type="radio" name="criticality" value="CC_class"> Climate Criticality</label>
+
+    <hr>
+    <div class="section-title">Additional Layers</div>
+    <label>
+      <input type="checkbox" id="toggle-road-categories">
+      Road Categories
+    </label>
+  </div>
+
+  <!-- Legend -->
+  <div id="map-legend"></div>
+</div>
+
+<!-- Footer -->
+<div id="footer">
+    <span>&#9432; This tool is intended for exploratory purposes only. All background code can be found here: https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia. </span>
+    <span>Vrije Universiteit Amsterdam &copy; OpenStreetMap contributors &copy; CARTO</span>
+</div>
+
+<!-- Info modal -->
+<div id="info-overlay" onclick="if(event.target===this) this.classList.remove('active')">
+  <div id="info-modal">
+    <button id="close-modal" onclick="document.getElementById('info-overlay').classList.remove('active')">&times;</button>
+    <h2>About This Map</h2>
+
+    <h3>&#128214; Methodology</h3>
+    <p>This visualisation presents a multi-criteria criticality assessment of Serbia's road network under climate-related hazards (blue spots). Road segments are scored across three dimensions and combined into an overall climate criticality index:</p>
+    <ul>
+      <li><strong>Hazard Exposure (H):</strong> degree to which a segment is exposed to natural hazards</li>
+      <li><strong>Travel Disruption (T):</strong> impact on national-scale connectivity if the segment is disrupted</li>
+      <li><strong>Local Accessibility (A):</strong> importance of the segment for local community access</li>
+      <li><strong>Climate Criticality (CC):</strong> combined score across H, T, and A indicators</li>
+    </ul>
+    <p>Each indicator is classified into quintiles: <em>Very Low, Low, Medium, High, Very High</em>. Segments with a score of zero are classified as <em>No criticality</em>.</p>
+
+    <h3>&#128506; How to Use</h3>
+    <ul>
+      <li>Use the <strong>layer panel</strong> (top right) to switch between the four criticality indicators</li>
+      <li>Toggle the <strong>Road Network</strong> background layer on/off</li>
+      <li>Toggle <strong>Road Categories</strong> to see the network coloured by road type</li>
+      <li><strong>Click</strong> any road segment to see its full attribute table</li>
+      <li>The <strong>legend</strong> (bottom right) updates with the active layer</li>
+    </ul>
+
+    <h3>&#9888;&#65039; Disclaimer</h3>
+    <p>This tool is intended for exploratory purposes only. All background code can be found here: https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia </p>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+// PMTiles protocol registration
+// =============================================================================
+const protocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
+
+// =============================================================================
+// Colour + style config
+// =============================================================================
+const CLASS_LABELS = ['No criticality', 'Very Low', 'Low', 'Medium', 'High', 'Very High'];
+
+const HTA_COLORS = {
+  'No criticality': '#e0e0e0',
+  'Very Low':       '#edf8fb',
+  'Low':            '#b3cde3',
+  'Medium':         '#8c96c6',
+  'High':           '#8856a7',
+  'Very High':      '#810f7c'
+};
+
+const CC_COLORS = {
+  'No criticality': '#e0e0e0',
+  'Very Low':       '#ffffcc',
+  'Low':            '#a1dab4',
+  'Medium':         '#41b6c4',
+  'High':           '#2c7fb8',
+  'Very High':      '#253494'
+};
+
+const WEIGHT = {
+  'No criticality': 1,
+  'Very Low':       1.5,
+  'Low':            2,
+  'Medium':         2.5,
+  'High':           3.5,
+  'Very High':      5
+};
+
+const OPACITY = {
+  'No criticality': 0.3,
+  'Very Low':       0.8,
+  'Low':            0.8,
+  'Medium':         0.8,
+  'High':           0.8,
+  'Very High':      0.8
+};
+
+const ROAD_COLORS = {
+  'IA':  '#8B0000',
+  'IM':  '#1E90FF',
+  'IB':  '#A52A2A',
+  'IIA': '#FFA500',
+  'IIB': '#228B22'
+};
+
+const ROAD_WIDTHS = {
+  'IA': 3.0, 'IM': 2.5, 'IB': 2.0, 'IIA': 1.5, 'IIB': 1.0
+};
+
+const LAYER_CONFIG = {
+  'H_class':  { name: 'Hazard Exposure',      colors: HTA_COLORS },
+  'T_class':  { name: 'Travel Disruption',    colors: HTA_COLORS },
+  'A_class':  { name: 'Local Accessibility',  colors: HTA_COLORS },
+  'CC_class': { name: 'Climate Criticality',  colors: CC_COLORS  }
+};
+
+// Build MapLibre match expression for colour
+function colorMatch(field, colorMap) {
+  const expr = ['match', ['get', field]];
+  CLASS_LABELS.forEach(lbl => { expr.push(lbl, colorMap[lbl]); });
+  expr.push('#e0e0e0'); // fallback
+  return expr;
+}
+
+function weightMatch(field) {
+  const expr = ['match', ['get', field]];
+  CLASS_LABELS.forEach(lbl => { expr.push(lbl, WEIGHT[lbl]); });
+  expr.push(1);
+  return expr;
+}
+
+function opacityMatch(field) {
+  const expr = ['match', ['get', field]];
+  CLASS_LABELS.forEach(lbl => { expr.push(lbl, OPACITY[lbl]); });
+  expr.push(0.4);
+  return expr;
+}
+
+// =============================================================================
+// Map init
+// =============================================================================
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  center: [21.0, 44.0],
+  zoom: 7
+});
+
+map.addControl(new maplibregl.NavigationControl(), 'top-left');
+map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+// =============================================================================
+// Sources + layers
+// =============================================================================
+map.on('load', () => {
+
+  // ── Sources ──
+  map.addSource('criticality', {
+    type: 'vector',
+    url: 'pmtiles://criticality.pmtiles'
+  });
+
+  map.addSource('network', {
+    type: 'vector',
+    url: 'pmtiles://network.pmtiles'
+  });
+
+  // ── Grey background network (always on by default) ──
+  map.addLayer({
+    id: 'network-grey',
+    type: 'line',
+    source: 'network',
+    'source-layer': 'network',
+    paint: {
+      'line-color': '#b0b0b0',
+      'line-width': 0.8,
+      'line-opacity': 0.5
+    }
+  });
+
+  // ── Criticality layer (starts with H_class) ──
+  map.addLayer({
+    id: 'criticality-layer',
+    type: 'line',
+    source: 'criticality',
+    'source-layer': 'criticality',
+    paint: {
+      'line-color':   colorMatch('H_class', HTA_COLORS),
+      'line-width':   weightMatch('H_class'),
+      'line-opacity': opacityMatch('H_class')
+    }
+  });
+
+  // ── Road categories layer (off by default) ──
+  const roadColorExpr = ['match', ['get', 'kategorija'],
+    'IA',  '#8B0000',
+    'IM',  '#1E90FF',
+    'IB',  '#A52A2A',
+    'IIA', '#FFA500',
+    'IIB', '#228B22',
+    '#aaaaaa'
+  ];
+  const roadWidthExpr = ['match', ['get', 'kategorija'],
+    'IA', 3.0, 'IM', 2.5, 'IB', 2.0, 'IIA', 1.5, 'IIB', 1.0, 1.0
+  ];
+
+  map.addLayer({
+    id: 'road-categories',
+    type: 'line',
+    source: 'network',
+    'source-layer': 'network',
+    layout: { visibility: 'none' },
+    paint: {
+      'line-color':   roadColorExpr,
+      'line-width':   roadWidthExpr,
+      'line-opacity': 0.85
+    }
+  });
+
+  // ── Initial legend ──
+  buildLegend('H_class');
+
+  // ── Popups ──
+  setupPopups();
+});
+
+// =============================================================================
+// Layer switching
+// =============================================================================
+let activeField = 'H_class';
+
+document.querySelectorAll('input[name="criticality"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    activeField = this.value;
+    const cfg = LAYER_CONFIG[activeField];
+    map.setPaintProperty('criticality-layer', 'line-color',   colorMatch(activeField, cfg.colors));
+    map.setPaintProperty('criticality-layer', 'line-width',   weightMatch(activeField));
+    map.setPaintProperty('criticality-layer', 'line-opacity', opacityMatch(activeField));
+    buildLegend(activeField);
+  });
+});
+
+document.getElementById('toggle-network-grey').addEventListener('change', function() {
+  map.setLayoutProperty('network-grey', 'visibility', this.checked ? 'visible' : 'none');
+});
+
+document.getElementById('toggle-road-categories').addEventListener('change', function() {
+  map.setLayoutProperty('road-categories', 'visibility', this.checked ? 'visible' : 'none');
+  if (this.checked) buildRoadCategoryLegend();
+  else buildLegend(activeField);
+});
+
+// =============================================================================
+// Legend
+// =============================================================================
+function buildLegend(field) {
+  const cfg = LAYER_CONFIG[field];
+  let html = `<h4>${cfg.name}</h4>`;
+  CLASS_LABELS.forEach(lbl => {
+    html += `<div class="legend-item">
+      <div class="legend-swatch" style="background:${cfg.colors[lbl]}"></div>
+      <span>${lbl}</span>
+    </div>`;
+  });
+  document.getElementById('map-legend').innerHTML = html;
+}
+
+function buildRoadCategoryLegend() {
+  const categories = ['IA', 'IM', 'IB', 'IIA', 'IIB'];
+  let html = '<h4>Road Categories</h4>';
+  categories.forEach(cat => {
+    html += `<div class="legend-item">
+      <div class="legend-swatch" style="background:${ROAD_COLORS[cat]}"></div>
+      <span>${cat}</span>
+    </div>`;
+  });
+  document.getElementById('map-legend').innerHTML = html;
+}
+
+// =============================================================================
+// Popups on click
+// =============================================================================
+function classColor(field, value) {
+  const cfg = LAYER_CONFIG[field];
+  return cfg ? (cfg.colors[value] || '#ccc') : '#ccc';
+}
+
+function formatValue(val) {
+  if (val === null || val === undefined) return '—';
+  if (typeof val === 'number') return Number.isInteger(val) ? val : val.toFixed(3);
+  return val;
+}
+
+function setupPopups() {
+  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '300px' });
+
+  map.on('click', 'criticality-layer', (e) => {
+    const p = e.features[0].properties;
+
+    const classFields = [
+      { field: 'H_class', label: 'Hazard Class' },
+      { field: 'T_class', label: 'Travel Class' },
+      { field: 'A_class', label: 'Accessibility Class' },
+      { field: 'CC_class', label: 'Climate Class' }
+    ];
+
+    const scoreFields = [
+      { field: 'H_hazard_exposure',    label: 'Hazard Exposure' },
+      { field: 'T_travel_disruption',  label: 'Travel Disruption' },
+      { field: 'A_local_accessibility',label: 'Local Accessibility' },
+      { field: 'CC_climate_criticality', label: 'CC Score' }
+    ];
+
+    let html = `<div class="popup-title">${p.naziv_poce || ''} → ${p.naziv_zavr || ''}</div>`;
+
+    // Class badges
+    classFields.forEach(({ field, label }) => {
+      if (p[field]) {
+        const color = classColor(field, p[field]);
+        html += `<div class="popup-row">
+          <span class="popup-label">${label}</span>
+          <span class="popup-class" style="background:${color}">${p[field]}</span>
+        </div>`;
+      }
+    });
+
+    html += `<div style="border-top:1px solid #eee;margin:6px 0;"></div>`;
+
+    // Scores
+    scoreFields.forEach(({ field, label }) => {
+      if (p[field] !== undefined && p[field] !== null) {
+        html += `<div class="popup-row">
+          <span class="popup-label">${label}</span>
+          <span class="popup-value">${formatValue(p[field])}</span>
+        </div>`;
+      }
+    });
+
+    // Road info
+    const infoFields = [
+      { field: 'kategorija',  label: 'Category' },
+      { field: 'total_aadt',  label: 'AADT' },
+      { field: 'road_length', label: 'Length (km)' },
+      { field: 'duzina_deo',  label: 'Segment length' }
+    ];
+    html += `<div style="border-top:1px solid #eee;margin:6px 0;"></div>`;
+    infoFields.forEach(({ field, label }) => {
+      if (p[field] !== undefined && p[field] !== null) {
+        html += `<div class="popup-row">
+          <span class="popup-label">${label}</span>
+          <span class="popup-value">${formatValue(p[field])}</span>
+        </div>`;
+      }
+    });
+
+    popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
+  });
+
+  map.on('click', 'road-categories', (e) => {
+    const p = e.features[0].properties;
+    const color = ROAD_COLORS[p.kategorija] || '#aaa';
+    let html = `<div class="popup-title">${p.naziv_poce || ''} → ${p.naziv_zavr || ''}</div>`;
+    html += `<div class="popup-row"><span class="popup-label">Category</span>
+      <span class="popup-class" style="background:${color}">${p.kategorija}</span></div>`;
+    [['total_aadt','AADT'],['road_length','Length (km)'],['speed','Speed (km/h)']].forEach(([f,l]) => {
+      if (p[f] !== undefined && p[f] !== null) {
+        html += `<div class="popup-row"><span class="popup-label">${l}</span>
+          <span class="popup-value">${formatValue(p[f])}</span></div>`;
+      }
+    });
+    popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
+  });
+
+  // Cursor
+  ['criticality-layer', 'road-categories'].forEach(id => {
+    map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
+  });
+}
+
+// =============================================================================
+// Show info modal on first load
+// =============================================================================
+window.addEventListener('load', () => {
+  document.getElementById('info-overlay').classList.add('active');
+});
+</script>
+
+</body>
+</html>
