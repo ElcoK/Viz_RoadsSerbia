@@ -256,11 +256,11 @@
     </label>
 
     <hr>
-    <div class="section-title">Criticality Layers</div>
-    <label><input type="radio" name="criticality" value="H_class" checked> Hazard Exposure</label>
-    <label><input type="radio" name="criticality" value="T_class"> Travel Disruption</label>
-    <label><input type="radio" name="criticality" value="A_class"> Local Accessibility</label>
-    <label><input type="radio" name="criticality" value="CC_class"> Climate Criticality</label>
+  <div class="section-title">Criticality Layers</div>
+  <label><input type="checkbox" name="criticality" value="H_class" checked> Hazard Exposure</label>
+  <label><input type="checkbox" name="criticality" value="T_class"> Travel Disruption</label>
+  <label><input type="checkbox" name="criticality" value="A_class"> Local Accessibility</label>
+  <label><input type="checkbox" name="criticality" value="CC_class"> Climate Criticality</label>
 
     <hr>
     <div class="section-title">Additional Layers</div>
@@ -276,8 +276,8 @@
 
 <!-- Footer -->
 <div id="footer">
-    <span>&#9432; This tool is intended for exploratory purposes only. All background code can be found here: https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia. </span>
-    <span>Vrije Universiteit Amsterdam &copy; OpenStreetMap contributors &copy; CARTO</span>
+  <span>&#9432; This tool is intended for exploratory purposes only. All background code can be found <a href="https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia" target="_blank" style="color:#1a3a5c;">here</a>.</span>
+  <span>&copy; OpenStreetMap contributors &copy; CARTO</span>
 </div>
 
 <!-- Info modal -->
@@ -306,7 +306,7 @@
     </ul>
 
     <h3>&#9888;&#65039; Disclaimer</h3>
-    <p>This tool is intended for exploratory purposes only. All background code can be found here: https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia </p>
+    <p>This tool is intended for exploratory purposes only. All background code can be found <a href="https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia" target="_blank">here</a>.</p>
   </div>
 </div>
 
@@ -406,7 +406,7 @@ const map = new maplibregl.Map({
   container: 'map',
   style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
   center: [21.0, 44.0],
-  zoom: 7
+  zoom: 6.5
 });
 
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
@@ -492,15 +492,26 @@ map.on('load', () => {
 // =============================================================================
 let activeField = 'H_class';
 
-document.querySelectorAll('input[name="criticality"]').forEach(radio => {
-  radio.addEventListener('change', function() {
-    activeField = this.value;
-    const cfg = LAYER_CONFIG[activeField];
-    map.setPaintProperty('criticality-layer', 'line-color',   colorMatch(activeField, cfg.colors));
-    map.setPaintProperty('criticality-layer', 'line-width',   weightMatch(activeField));
-    map.setPaintProperty('criticality-layer', 'line-opacity', opacityMatch(activeField));
-    buildLegend(activeField);
-  });
+document.querySelectorAll('input[name="criticality"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Uncheck all others
+            document.querySelectorAll('input[name="criticality"]').forEach(cb => {
+                if (cb !== this) cb.checked = false;
+            });
+            activeField = this.value;
+            const cfg = LAYER_CONFIG[activeField];
+            map.setPaintProperty('criticality-layer', 'line-color',   colorMatch(activeField, cfg.colors));
+            map.setPaintProperty('criticality-layer', 'line-width',   weightMatch(activeField));
+            map.setPaintProperty('criticality-layer', 'line-opacity', opacityMatch(activeField));
+            map.setLayoutProperty('criticality-layer', 'visibility', 'visible');
+            buildLegend(activeField);
+        } else {
+            // All unchecked — hide layer and clear legend
+            map.setLayoutProperty('criticality-layer', 'visibility', 'none');
+            document.getElementById('map-legend').innerHTML = '<h4>No layer selected</h4>';
+        }
+    });
 });
 
 document.getElementById('toggle-network-grey').addEventListener('change', function() {
@@ -567,13 +578,6 @@ function setupPopups() {
       { field: 'CC_class', label: 'Climate Class' }
     ];
 
-    const scoreFields = [
-      { field: 'H_hazard_exposure',    label: 'Hazard Exposure' },
-      { field: 'T_travel_disruption',  label: 'Travel Disruption' },
-      { field: 'A_local_accessibility',label: 'Local Accessibility' },
-      { field: 'CC_climate_criticality', label: 'CC Score' }
-    ];
-
     let html = `<div class="popup-title">${p.naziv_poce || ''} → ${p.naziv_zavr || ''}</div>`;
 
     // Class badges
@@ -587,24 +591,12 @@ function setupPopups() {
       }
     });
 
-    html += `<div style="border-top:1px solid #eee;margin:6px 0;"></div>`;
-
-    // Scores
-    scoreFields.forEach(({ field, label }) => {
-      if (p[field] !== undefined && p[field] !== null) {
-        html += `<div class="popup-row">
-          <span class="popup-label">${label}</span>
-          <span class="popup-value">${formatValue(p[field])}</span>
-        </div>`;
-      }
-    });
-
     // Road info
     const infoFields = [
-      { field: 'kategorija',  label: 'Category' },
-      { field: 'total_aadt',  label: 'AADT' },
-      { field: 'road_length', label: 'Length (km)' },
-      { field: 'duzina_deo',  label: 'Segment length' }
+        { field: 'kategorija',  label: 'Road Category' },
+        { field: 'oznaka_put',  label: 'Road Code' },
+        { field: 'duzina_deo',  label: 'Segment Length' },
+        { field: 'total_aadt',  label: 'AADT' }
     ];
     html += `<div style="border-top:1px solid #eee;margin:6px 0;"></div>`;
     infoFields.forEach(({ field, label }) => {
