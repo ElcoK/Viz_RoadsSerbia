@@ -12,7 +12,7 @@ import geopandas as gpd
 # Paths
 # =============================================================================
 
-ROOT         = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent
 DATA_DIR     = ROOT / "data"
 TEMP_DIR     = ROOT / "data" / "temp"
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
