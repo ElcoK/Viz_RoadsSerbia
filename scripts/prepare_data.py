@@ -74,9 +74,9 @@ def load_and_prepare(parquet_path, keep_cols):
 
     return gdf
 
-def export_geojson(gdf, path, float_precision=5):
+def export_geojson(gdf, path):
     print(f"  Exporting to {path.name}...")
-    gdf.to_file(str(path), driver="GeoJSON", float_precision=float_precision)
+    gdf.to_file(str(path), driver="GeoJSON")
     size_mb = path.stat().st_size / 1_000_000
     print(f"  Exported: {size_mb:.1f} MB")
 
@@ -92,7 +92,7 @@ for col in ['H_class', 'T_class', 'A_class', 'CC_class']:
     if col in gdf_criticality.columns:
         gdf_criticality[col] = gdf_criticality[col].fillna('No criticality')
 
-export_geojson(gdf_criticality, CRITICALITY_GEOJSON)
+export_geojson(gdf_criticality, NETWORK_GEOJSON)
 
 # =============================================================================
 # Base network
