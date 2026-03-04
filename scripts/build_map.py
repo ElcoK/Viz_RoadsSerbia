@@ -26,9 +26,9 @@ print(f"  Loaded {len(gdf)} features")
 
 # Simplify geometries to reduce output HTML size
 # tolerance in degrees (~10m at this latitude) — adjust if needed
-print("Simplifying geometries...")
-gdf.geometry = gdf.geometry.simplify(tolerance=0.0001, preserve_topology=True)
-print("  Done")
+#print("Simplifying geometries...")
+#gdf.geometry = gdf.geometry.simplify(tolerance=0.0001, preserve_topology=True)
+#print("  Done")
 
 # =============================================================================
 # Classification (CC / mean_class)
@@ -369,8 +369,8 @@ custom_control = """
 
 <!-- Footer -->
 <div id="map-footer">
-    <span>&#9432; This tool is intended for research and exploratory purposes only. Data should not be used for official planning or decision-making without further validation.</span>
-    <span>&copy; OpenStreetMap contributors &copy; CARTO</span>
+    <span>&#9432; This tool is intended for exploratory purposes only. All background code can be found here: https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia. </span>
+    <span>Vrije Universiteit Amsterdam &copy; OpenStreetMap contributors &copy; CARTO</span>
 </div>
 
 <!-- Info Modal -->
@@ -382,18 +382,12 @@ custom_control = """
         <h3>&#128214; Methodology</h3>
         <p>This visualisation presents a multi-criteria criticality assessment of Serbia's road network under climate-related hazards (blue spots). Road segments are scored across three dimensions and combined into an overall climate criticality index:</p>
         <ul>
-            <li><strong>Hazard Exposure (H):</strong> degree to which a segment is exposed to flood or blue spot hazards</li>
+            <li><strong>Hazard Exposure (H):</strong> degree to which a segment is exposed to natural hazards</li>
             <li><strong>Travel Disruption (T):</strong> impact on national-scale connectivity if the segment is disrupted</li>
             <li><strong>Local Accessibility (A):</strong> importance of the segment for local community access</li>
             <li><strong>Climate Criticality (CC):</strong> combined mean score across H, T, and A indicators</li>
         </ul>
         <p>Each indicator is classified into quintiles: <em>Very Low, Low, Medium, High, Very High</em>. Segments with a score of zero are classified as <em>No criticality</em>.</p>
-
-        <h3>&#128209; Data Sources</h3>
-        <ul>
-            <li>Road network: OpenStreetMap / national road authority data</li>
-            <li>Hazard data: Blue spot analysis derived from terrain and hydrological modelling</li>
-        </ul>
 
         <h3>&#128506; How to Use</h3>
         <ul>
@@ -404,7 +398,7 @@ custom_control = """
         </ul>
 
         <h3>&#9888;&#65039; Disclaimer</h3>
-        <p>This tool is intended for research and exploratory purposes only. Results should not be used for official infrastructure planning or policy decisions without further validation and expert review.</p>
+        <p>This tool is intended for exploratory purposes only. All background code can be found here: https://github.com/VU-IVM/Criticality-Analysis-Roads-Serbia </p>
     </div>
 </div>
 
