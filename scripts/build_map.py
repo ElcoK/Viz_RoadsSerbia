@@ -26,9 +26,9 @@ print(f"  Loaded {len(gdf)} features")
 
 # Simplify geometries to reduce output HTML size
 # tolerance in degrees (~10m at this latitude) — adjust if needed
-#print("Simplifying geometries...")
-#gdf.geometry = gdf.geometry.simplify(tolerance=0.0001, preserve_topology=True)
-#print("  Done")
+print("Simplifying geometries...")
+gdf.geometry = gdf.geometry.simplify(tolerance=0.0001, preserve_topology=True)
+print("  Done")
 
 # =============================================================================
 # Classification (CC / mean_class)
