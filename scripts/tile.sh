@@ -6,10 +6,14 @@
 
 set -e  # exit on error
 
-TEMP_DIR="data/temp"
-DOCS_DIR="docs"
+TEMP_DIR="$(pwd)/data/temp"
+DOCS_DIR="$(pwd)/docs"
 
 mkdir -p "$DOCS_DIR"
+mkdir -p "$TEMP_DIR"
+
+echo "Looking for GeoJSON in: $TEMP_DIR"
+ls -lh "$TEMP_DIR/" || echo "temp dir is empty or missing"
 
 echo ""
 echo "=== Tiling: criticality network ==="
