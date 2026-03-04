@@ -23,6 +23,12 @@ print(f"ROOT: {ROOT}")
 print(f"TEMP_DIR: {TEMP_DIR}")
 print(f"TEMP_DIR exists: {TEMP_DIR.exists()}")
 
+CRITICALITY_PARQUET = DATA_DIR / "Serbia_Criticality.parquet"
+NETWORK_PARQUET     = DATA_DIR / "PERS_directed_final.parquet"
+
+CRITICALITY_GEOJSON = TEMP_DIR / "criticality.geojson"
+NETWORK_GEOJSON     = TEMP_DIR / "network.geojson"
+
 # =============================================================================
 # Columns
 # =============================================================================
