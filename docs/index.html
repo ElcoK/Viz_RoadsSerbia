@@ -572,10 +572,10 @@ function setupPopups() {
     const p = e.features[0].properties;
 
     const classFields = [
-      { field: 'H_class', label: 'Hazard Class' },
-      { field: 'T_class', label: 'Travel Class' },
-      { field: 'A_class', label: 'Accessibility Class' },
-      { field: 'CC_class', label: 'Climate Class' }
+      { field: 'H_class', label: 'Hazard - Exposure' },
+      { field: 'T_class', label: 'Travel Disruption' },
+      { field: 'A_class', label: 'Accessibility' },
+      { field: 'CC_class', label: 'Climate Criticality' }
     ];
 
     let html = `<div class="popup-title">${p.naziv_poce || ''} → ${p.naziv_zavr || ''}</div>`;
