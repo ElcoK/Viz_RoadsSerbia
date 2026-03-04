@@ -107,7 +107,6 @@ layer_config = [
 
 popup_cols = [
     'section_id', 'naziv_poc', 'naziv_pov',
-    'H_hazard_exposure', 'T_travel_disruption', 'A_local_accessibility',
     'H_class', 'T_class', 'A_class', 'mean_class'
 ]
 popup_cols = [c for c in popup_cols if c in gdf.columns]
